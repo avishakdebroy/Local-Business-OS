@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Entry {{ doc.id }} — Local Business OS{% endblock %}
+{% block content %}
+<h1>Entry {{ doc.id }} <span class="pill {{ doc.status }}">{{ doc.status|status_label }}</span></h1>
+<p class="muted small">
+  Seen {{ doc.captured_at|when }} ·
+  read by {{ doc.extractor }} ·
+  confidence {{ doc.confidence|percent }}
+  {% if doc.original_filename %} · from {{ doc.original_filename }}{% endif %}
+</p>
+
+{% if notes %}
+<div class="flash warn">
+  <strong>Please check:</strong>
+  <ul class="notes">{% for note in notes %}<li>{{ note }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<div class="grid two">
+  <div class="card">
+    <h2 style="margin-top:0">What was sent in</h2>
+    {% if has_image %}<p><img class="receipt-photo" src="/review/{{ doc.id }}/file" alt="Uploaded receipt"></p>{% endif %}
+    {% if doc.stored_path and not has_image %}<p class="small"><a href="/review/{{ doc.id }}/file">Open the original file</a></p>{% endif %}
+    <pre class="source">{{ doc.raw_text or '(no text could be read)' }}</pre>
+  </div>
+
+  <form class="card" method="post" action="/review/{{ doc.id }}/accept">
+    <h2 style="margin-top:0">Check and record</h2>
+
+    <label for="doc_type">Entry type / ধরন</label>
+    <select id="doc_type" name="doc_type" onchange="showGroup(this.value)">
+      {% for value, label in type_options %}
+      <option value="{{ value }}" {% if value == doc.doc_type %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="entry_date">Date the money or stock moved / তারিখ
+      <span class="hint">Not today's date — the date on the receipt.</span>
+    </label>
+    <input id="entry_date" type="date" name="entry_date" value="{{ fields.entry_date or today }}" required>
+
+    <fieldset id="group-money" class="group">
+      <legend>Sale or purchase</legend>
+      <label for="total">Amount in taka / টাকার পরিমাণ</label>
+      <input id="total" type="text" inputmode="decimal" name="total" value="{{ fields.total_paisa|taka_plain }}" placeholder="1250.00">
+      <div class="row-inline">
+        <div>
+          <label for="tax">VAT / ভ্যাট <span class="hint">optional</span></label>
+          <input id="tax" type="text" inputmode="decimal" name="tax" value="{{ (fields.tax_paisa or 0)|taka_plain }}">
+        </div>
+        <div>
+          <label for="payment_method">Paid by / পরিশোধ</label>
+          <select id="payment_method" name="payment_method">
+            <option value="">—</option>
+            {% for method in payment_methods %}
+            <option value="{{ method }}" {% if fields.payment_method == method %}selected{% endif %}>{{ method }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="row-inline">
+        <div>
+          <label for="party">Shop or customer / দোকান বা ক্রেতা</label>
+          <input id="party" type="text" name="party" value="{{ fields.party or '' }}">
+        </div>
+        <div>
+          <label for="category">Category / খাত</label>
+          <input id="category" type="text" name="category" value="{{ fields.category or '' }}" list="category-list">
+          <datalist id="category-list">
+            {% for c in categories %}<option value="{{ c }}">{% endfor %}
+          </datalist>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset id="group-stock" class="group">
+      <legend>Stock movement</legend>
+      <div id="stock-rows">
+        {% for line in stock_lines %}
+        <div class="row-inline stock-row">
+          <div><label>Item</label><input type="text" name="line_name" value="{{ line.name or '' }}"></div>
+          <div><label>Qty</label><input type="text" inputmode="decimal" name="line_qty" value="{{ line.qty_milli|qty_plain }}"></div>
+          <div><label>Unit</label><input type="text" name="line_unit" value="{{ line.unit or 'pcs' }}"></div>
+          <div><label>In or out</label>
+            <select name="line_direction">
+              <option value="" {% if not line.direction %}selected{% endif %}>— choose —</option>
+              <option value="in" {% if line.direction == 'in' %}selected{% endif %}>In / ঢুকেছে</option>
+              <option value="out" {% if line.direction == 'out' %}selected{% endif %}>Out / বেরিয়েছে</option>
+            </select>
+          </div>
+          <div><label>Cost each <span class="hint">optional</span></label><input type="text" inputmode="decimal" name="line_cost" value="{{ line.unit_cost_paisa|taka_plain if line.unit_cost_paisa else '' }}"></div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="actions"><button type="button" class="secondary" onclick="addStockRow()">Add another item</button></div>
+    </fieldset>
+
+    <fieldset id="group-memo" class="group">
+      <legend>Note</legend>
+      <label for="title">Title</label>
+      <input id="title" type="text" name="title" value="{{ fields.title or '' }}">
+      <label for="body">Note text</label>
+      <textarea id="body" name="body">{{ fields.body or doc.raw_text or '' }}</textarea>
+      <label for="tags">Tags <span class="hint">comma separated, optional</span></label>
+      <input id="tags" type="text" name="tags" value="{{ fields.tags or '' }}">
+    </fieldset>
+
+    <label for="notes">Your comment / আপনার মন্তব্য <span class="hint">optional</span></label>
+    <input id="notes" type="text" name="notes" value="{{ fields.notes or '' }}">
+
+    <div class="actions">
+      <button type="submit">Record this / হিসাবে যোগ করুন</button>
+      <a class="btn secondary" href="/review">Back</a>
+      <button type="submit" class="danger" formaction="/review/{{ doc.id }}/reject" formnovalidate>Discard / বাদ দিন</button>
+    </div>
+  </form>
+</div>
+
+<script>
+// Only shows and hides. With scripting off every group stays visible and the
+// form still works, because the server validates on the submitted entry type.
+function showGroup(value){
+  var map = {sale:'group-money', purchase:'group-money', stock:'group-stock', memo:'group-memo'};
+  ['group-money','group-stock','group-memo'].forEach(function(id){
+    document.getElementById(id).style.display = (map[value] === id) ? '' : 'none';
+  });
+}
+function addStockRow(){
+  var rows = document.getElementById('stock-rows');
+  var first = rows.querySelector('.stock-row');
+  var clone = first ? first.cloneNode(true) : null;
+  if(!clone) return;
+  clone.querySelectorAll('input').forEach(function(i){ i.value = i.name === 'line_unit' ? 'pcs' : ''; });
+  clone.querySelectorAll('select').forEach(function(s){ s.selectedIndex = 0; });
+  rows.appendChild(clone);
+}
+showGroup(document.getElementById('doc_type').value);
+</script>
+{% endblock %}

@@ -1,0 +1,40 @@
+[project]
+name = "lbos"
+version = "1.0.0"
+description = "Local Business OS - offline-first bookkeeping and inventory for a single shop"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "python-multipart>=0.0.20",
+    "jinja2>=3.1",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "APScheduler>=3.11,<4",
+    "requests>=2.32",
+    "pypdf>=5.1",
+    "Pillow>=11.0",
+    "pytesseract>=0.3.13",
+    # zoneinfo has no system tz database on Windows; this ships one.
+    "tzdata>=2024.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3", "httpx>=0.28"]
+
+[project.scripts]
+lbos = "lbos.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["lbos*"]
+
+[tool.setuptools.package-data]
+lbos = ["db/migrations/*.sql", "api/templates/*.html", "api/static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["error::DeprecationWarning:lbos.*"]

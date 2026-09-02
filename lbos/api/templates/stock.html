@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Stock — Local Business OS{% endblock %}
+{% block content %}
+<h1>Stock / মজুদ</h1>
+<p class="muted small">On-hand quantities are added up from every stock movement, so they always match the history.</p>
+
+<div class="card scroll-x">
+  {% if levels %}
+  <table>
+    <thead><tr><th>Item</th><th>Unit</th><th class="num">On hand</th><th class="num">Reorder at</th><th></th></tr></thead>
+    <tbody>
+      {% for row in levels %}
+      <tr>
+        <td>{{ row.name }}{% if row.on_hand_milli <= row.reorder_level_milli %} <span class="pill low">low</span>{% endif %}</td>
+        <td class="small muted">{{ row.unit }}</td>
+        <td class="num"><strong>{{ row.on_hand_milli|qty }}</strong></td>
+        <td class="num">
+          <form method="post" action="/stock/{{ row.item_id }}/reorder" class="row-inline" style="gap:.3rem">
+            <input type="text" inputmode="decimal" name="reorder_level" value="{{ row.reorder_level_milli|qty_plain }}" style="max-width:6rem">
+            <button type="submit" class="secondary">Save</button>
+          </form>
+        </td>
+        <td><a class="btn secondary" href="/stock/{{ row.item_id }}">History</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No items yet. Add a stock entry from the Home screen.</div>
+  {% endif %}
+</div>
+
+{% if moves is defined %}
+<h2>{{ item.name }} — movements</h2>
+<div class="card scroll-x">
+  <table>
+    <thead><tr><th>Date</th><th>In or out</th><th class="num">Qty</th><th class="num">Cost each</th><th>Note</th></tr></thead>
+    <tbody>
+      {% for m in moves %}
+      <tr>
+        <td>{{ m.entry_date }}</td>
+        <td>{{ 'In' if m.direction == 'in' else 'Out' }}</td>
+        <td class="num">{{ m.qty_milli|qty(m.item_unit) }}</td>
+        <td class="num">{{ m.unit_cost_paisa|taka if m.unit_cost_paisa else '—' }}</td>
+        <td class="small muted">{{ m.notes or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

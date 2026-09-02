@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Status — Local Business OS{% endblock %}
+{% block content %}
+<h1>Status / অবস্থা</h1>
+<p class="muted small">A quick check that everything is working. Nothing here needs changing day to day.</p>
+
+{% if problems %}
+<div class="flash error">
+  <strong>Needs attention:</strong>
+  <ul class="notes">{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul>
+</div>
+{% else %}
+<div class="flash ok">Everything looks healthy.</div>
+{% endif %}
+
+<div class="grid two">
+  <div class="card">
+    <h2 style="margin-top:0">Reading receipts</h2>
+    <table>
+      <tr><th>Photo reading (OCR)</th><td>{{ ocr_status }}</td></tr>
+      <tr><th>Languages</th><td>{{ settings.ocr_lang }}</td></tr>
+      <tr><th>AI assist</th><td>{{ llm_status }}</td></tr>
+      <tr><th>Auto-record above</th><td>{{ settings.auto_post_threshold|percent }} confidence</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Where things are kept</h2>
+    <table>
+      <tr><th>Data folder</th><td class="small">{{ settings.data_dir }}</td></tr>
+      <tr><th>Database</th><td class="small">{{ db_size }}</td></tr>
+      <tr><th>Backups kept</th><td>{{ backup_count }} files, newest {{ newest_backup }}</td></tr>
+      <tr><th>Free disk space</th><td>{{ free_space }}</td></tr>
+      <tr><th>Offsite copy</th><td>{{ offsite_status }}</td></tr>
+    </table>
+  </div>
+</div>
+
+<h2>Scheduled jobs</h2>
+<div class="card scroll-x">
+  <table>
+    <thead><tr><th>Job</th><th>Next run</th></tr></thead>
+    <tbody>
+      {% for job in next_runs %}<tr><td>{{ job.id }}</td><td class="small">{{ job.next_run }}</td></tr>
+      {% else %}<tr><td colspan="2" class="muted">The scheduler is switched off.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2>Recent job results</h2>
+<div class="card scroll-x">
+  {% if job_runs %}
+  <table>
+    <thead><tr><th>Job</th><th>Result</th><th>When</th><th>Detail</th></tr></thead>
+    <tbody>
+      {% for j in job_runs %}
+      <tr>
+        <td>{{ j.job_name }}</td>
+        <td><span class="pill {{ 'posted' if j.status == 'ok' else 'rejected' }}">{{ j.status }}</span></td>
+        <td class="small muted">{{ j.finished_at|when }}</td>
+        <td class="small">{{ (j.detail or '')[:120] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No scheduled job has run yet.</div>
+  {% endif %}
+</div>
+
+<div class="actions">
+  <form method="post" action="/status/backup"><button type="submit">Make a backup now</button></form>
+</div>
+{% endblock %}

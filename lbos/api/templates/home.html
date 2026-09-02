@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Home — Local Business OS{% endblock %}
+{% block content %}
+<h1>Today, {{ today }}</h1>
+
+<div class="tiles">
+  <div class="tile good"><div class="label">Sales today / আজকের বিক্রয়</div><div class="value">{{ today_totals.sale_paisa|taka }}</div><div class="small muted">{{ today_totals.sale_count }} entries</div></div>
+  <div class="tile bad"><div class="label">Purchases today / আজকের ক্রয়</div><div class="value">{{ today_totals.purchase_paisa|taka }}</div><div class="small muted">{{ today_totals.purchase_count }} entries</div></div>
+  <div class="tile"><div class="label">This week net / সপ্তাহের নিট</div><div class="value">{{ week_totals.net_paisa|taka }}</div><div class="small muted">{{ week_start }} → {{ week_end }}</div></div>
+  <div class="tile"><div class="label">Waiting for you / অপেক্ষমাণ</div><div class="value">{{ pending_count }}</div><div class="small muted">{% if pending_count %}<a href="/review">Open the review screen</a>{% else %}Nothing to check{% endif %}</div></div>
+</div>
+
+<h2>Add an entry / নতুন এন্ট্রি</h2>
+<div class="grid two">
+  <form class="card" method="post" action="/capture/text">
+    <label for="text">Type or paste what happened
+      <span class="hint">Bengali or English. Example: “বিক্রি ৳১২৫০ নগদ” or “Bought 20 kg rice 1240 taka”.</span>
+    </label>
+    <textarea id="text" name="text" required placeholder="মোট ৳১২৫০ নগদ বিক্রি&#10;Total 1250 taka cash sale"></textarea>
+    <label for="hint_text">What kind of entry is this?</label>
+    <select id="hint_text" name="hint">
+      <option value="auto" selected>Let the app decide / নিজে বুঝে নিক</option>
+      <option value="sale">Sale / বিক্রয়</option>
+      <option value="purchase">Purchase / ক্রয়</option>
+      <option value="stock">Stock / মজুদ</option>
+      <option value="memo">Note / নোট</option>
+    </select>
+    <div class="actions"><button type="submit">Save / সংরক্ষণ</button></div>
+  </form>
+
+  <form class="card" method="post" action="/capture/file" enctype="multipart/form-data">
+    <label for="file">Upload a receipt photo or PDF
+      <span class="hint">JPG, PNG or PDF. The photo is always kept, even if the text cannot be read.</span>
+    </label>
+    <input id="file" type="file" name="file" required
+           accept=".jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff,.pdf,.txt,.csv,.md">
+    <label for="hint_file">What kind of entry is this?</label>
+    <select id="hint_file" name="hint">
+      <option value="auto" selected>Let the app decide / নিজে বুঝে নিক</option>
+      <option value="sale">Sale / বিক্রয়</option>
+      <option value="purchase">Purchase / ক্রয়</option>
+      <option value="stock">Stock / মজুদ</option>
+      <option value="memo">Note / নোট</option>
+    </select>
+    <div class="actions"><button type="submit">Upload / আপলোড</button></div>
+  </form>
+</div>
+
+{% if low_stock %}
+<h2>Running low / মজুদ কম</h2>
+<div class="card scroll-x">
+  <table>
+    <thead><tr><th>Item</th><th class="num">On hand</th><th class="num">Reorder at</th></tr></thead>
+    <tbody>
+      {% for row in low_stock %}
+      <tr>
+        <td>{{ row.name }} <span class="pill low">low</span></td>
+        <td class="num">{{ row.on_hand_milli|qty(row.unit) }}</td>
+        <td class="num">{{ row.reorder_level_milli|qty(row.unit) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<h2>Latest entries / সাম্প্রতিক</h2>
+<div class="card scroll-x">
+  {% if recent %}
+  <table>
+    <thead><tr><th>#</th><th>Type</th><th>Status</th><th>Text</th><th class="num">Seen</th></tr></thead>
+    <tbody>
+      {% for doc in recent %}
+      <tr>
+        <td><a href="/review/{{ doc.id }}">{{ doc.id }}</a></td>
+        <td>{{ doc.doc_type|doc_type_label }}</td>
+        <td><span class="pill {{ doc.status }}">{{ doc.status|status_label }}</span></td>
+        <td class="small">{{ (doc.raw_text or doc.original_filename or '')[:70] }}{% if (doc.raw_text or '')|length > 70 %}…{% endif %}</td>
+        <td class="num small muted">{{ doc.captured_at|when }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">Nothing recorded yet. Add your first entry above.</div>
+  {% endif %}
+</div>
+{% endblock %}

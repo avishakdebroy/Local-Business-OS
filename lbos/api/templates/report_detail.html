@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Report {{ run.period_end }} — Local Business OS{% endblock %}
+{% block content %}
+<h1>Report: {{ run.period_start }} → {{ run.period_end }}</h1>
+<p class="muted small">Made {{ run.created_at|when }} · email: {{ run.delivery_status }}{% if run.delivery_detail %} ({{ run.delivery_detail }}){% endif %}</p>
+<div class="card"><pre class="source" style="max-height:40rem">{{ text }}</pre></div>
+<div class="actions"><a class="btn secondary" href="/reports">Back to reports</a></div>
+{% endblock %}

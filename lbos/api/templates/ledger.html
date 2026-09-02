@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Ledger — Local Business OS{% endblock %}
+{% block content %}
+<h1>Ledger / হিসাব</h1>
+
+<form class="card" method="get" action="/ledger">
+  <div class="row-inline">
+    <div><label for="start">From / থেকে</label><input id="start" type="date" name="start" value="{{ start }}"></div>
+    <div><label for="end">To / পর্যন্ত</label><input id="end" type="date" name="end" value="{{ end }}"></div>
+    <div><label for="direction">Show</label>
+      <select id="direction" name="direction">
+        <option value="" {% if not direction %}selected{% endif %}>Everything</option>
+        <option value="sale" {% if direction == 'sale' %}selected{% endif %}>Sales only</option>
+        <option value="purchase" {% if direction == 'purchase' %}selected{% endif %}>Purchases only</option>
+      </select>
+    </div>
+    <div><label>&nbsp;</label><button type="submit">Show</button></div>
+  </div>
+</form>
+
+<div class="tiles">
+  <div class="tile good"><div class="label">Sales</div><div class="value">{{ totals.sale_paisa|taka }}</div><div class="small muted">{{ totals.sale_count }} entries</div></div>
+  <div class="tile bad"><div class="label">Purchases</div><div class="value">{{ totals.purchase_paisa|taka }}</div><div class="small muted">{{ totals.purchase_count }} entries</div></div>
+  <div class="tile"><div class="label">Net</div><div class="value">{{ totals.net_paisa|taka }}</div><div class="small muted">Sales minus purchases</div></div>
+</div>
+
+<div class="card scroll-x">
+  {% if entries %}
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Type</th><th>Who</th><th>Category</th><th>Paid by</th><th class="num">VAT</th><th class="num">Amount</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for e in entries %}
+      <tr>
+        <td>{{ e.entry_date }}</td>
+        <td>{{ e.direction|doc_type_label }}</td>
+        <td>{{ e.party or '—' }}</td>
+        <td class="small">{{ e.category or '—' }}</td>
+        <td class="small">{{ e.payment_method or '—' }}</td>
+        <td class="num small muted">{{ e.tax_paisa|taka }}</td>
+        <td class="num"><strong>{{ e.total_paisa|taka }}</strong></td>
+        <td>
+          <form method="post" action="/ledger/{{ e.document_id }}/undo" onsubmit="return confirm('Take this entry out of the books and send it back to Review?')">
+            <button type="submit" class="danger small">Undo</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No entries in this date range.</div>
+  {% endif %}
+</div>
+{% if memos %}
+<h2>Notes in this period</h2>
+<div class="card">
+  {% for m in memos %}
+  <p><strong>{{ m.entry_date }} — {{ m.title }}</strong><br><span class="small muted">{{ m.body[:300] }}</span></p>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
