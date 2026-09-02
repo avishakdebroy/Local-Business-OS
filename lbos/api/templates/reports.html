@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Reports — Local Business OS{% endblock %}
+{% block content %}
+<h1>Reports / রিপোর্ট</h1>
+
+<form class="card" method="post" action="/reports/run">
+  <p style="margin-top:0">The weekly report is generated automatically every {{ report_day }} at {{ report_time }}. You can also make one now.</p>
+  <div class="actions"><button type="submit">Make this week's report now</button></div>
+</form>
+
+{% if latest_text %}
+<h2>Latest report</h2>
+<div class="card"><pre class="source" style="max-height:34rem">{{ latest_text }}</pre></div>
+{% endif %}
+
+<h2>All reports</h2>
+<div class="card scroll-x">
+  {% if runs %}
+  <table>
+    <thead><tr><th>Period</th><th>Made</th><th>Emailed</th><th>File</th></tr></thead>
+    <tbody>
+      {% for r in runs %}
+      <tr>
+        <td>{{ r.period_start }} → {{ r.period_end }}</td>
+        <td class="small muted">{{ r.created_at|when }}</td>
+        <td class="small">{{ r.delivery_status }}{% if r.delivery_detail %} <span class="muted">— {{ r.delivery_detail[:80] }}</span>{% endif %}</td>
+        <td class="small"><a href="/reports/{{ r.id }}">view</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No reports yet.</div>
+  {% endif %}
+</div>
+{% endblock %}

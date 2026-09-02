@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Local Business OS{% endblock %}</title>
+<style>
+/* Everything is inlined: the shop may have no internet at all. */
+:root{
+  --bg:#f4f5f7; --card:#fff; --ink:#15181d; --muted:#5b6472; --line:#d9dee6;
+  --brand:#0f6f4c; --brand-dark:#0b5439; --warn:#8a5300; --warn-bg:#fff5e0;
+  --bad:#a2201c; --bad-bg:#fdeceb; --ok:#0f6f4c; --ok-bg:#e7f4ee;
+  --radius:10px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Segoe UI","Nirmala UI","Shonar Bangla",system-ui,-apple-system,"Noto Sans Bengali",sans-serif;
+  font-size:17px; line-height:1.5;
+}
+a{color:var(--brand-dark)}
+header.top{background:var(--brand); color:#fff; padding:.7rem 1rem}
+header.top .row{max-width:1080px; margin:0 auto; display:flex; flex-wrap:wrap; gap:.6rem; align-items:center}
+header.top .brand{font-weight:700; font-size:1.15rem; margin-right:auto; color:#fff; text-decoration:none}
+nav a{
+  color:#fff; text-decoration:none; padding:.4rem .7rem; border-radius:var(--radius);
+  display:inline-block; font-size:.95rem;
+}
+nav a:hover,nav a.active{background:rgba(255,255,255,.2)}
+.badge{
+  background:#ffd166; color:#3a2a00; border-radius:999px; padding:.05rem .45rem;
+  font-size:.8rem; font-weight:700; margin-left:.25rem;
+}
+main{max-width:1080px; margin:0 auto; padding:1.2rem 1rem 3rem}
+h1{font-size:1.5rem; margin:.2rem 0 1rem}
+h2{font-size:1.15rem; margin:1.6rem 0 .6rem}
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:1rem; margin-bottom:1rem}
+.grid{display:grid; gap:1rem}
+@media(min-width:820px){ .grid.two{grid-template-columns:1fr 1fr} .grid.three{grid-template-columns:repeat(3,1fr)} }
+.tiles{display:grid; gap:.8rem; grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.tile{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:.9rem}
+.tile .label{color:var(--muted); font-size:.85rem}
+.tile .value{font-size:1.5rem; font-weight:700; margin-top:.2rem}
+.tile.good .value{color:var(--ok)} .tile.bad .value{color:var(--bad)}
+label{display:block; font-weight:600; margin:.7rem 0 .25rem; font-size:.95rem}
+.hint{color:var(--muted); font-weight:400; font-size:.85rem}
+input[type=text],input[type=date],input[type=number],input[type=file],select,textarea{
+  width:100%; padding:.6rem .7rem; font:inherit; border:1px solid var(--line);
+  border-radius:var(--radius); background:#fff; color:var(--ink);
+}
+textarea{min-height:7rem; resize:vertical}
+button,.btn{
+  font:inherit; font-weight:600; padding:.65rem 1.1rem; border-radius:var(--radius);
+  border:1px solid transparent; cursor:pointer; background:var(--brand); color:#fff;
+  text-decoration:none; display:inline-block;
+}
+button:hover,.btn:hover{background:var(--brand-dark)}
+.btn.secondary,button.secondary{background:#fff; color:var(--ink); border-color:var(--line)}
+.btn.secondary:hover,button.secondary:hover{background:#eef0f4}
+.btn.danger,button.danger{background:#fff; color:var(--bad); border-color:#e6b6b4}
+.btn.danger:hover,button.danger:hover{background:var(--bad-bg)}
+.actions{display:flex; gap:.6rem; flex-wrap:wrap; margin-top:1rem}
+table{width:100%; border-collapse:collapse; font-size:.95rem}
+th,td{text-align:left; padding:.55rem .5rem; border-bottom:1px solid var(--line); vertical-align:top}
+th{color:var(--muted); font-size:.8rem; text-transform:uppercase; letter-spacing:.03em}
+td.num,th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
+.flash{padding:.8rem 1rem; border-radius:var(--radius); margin-bottom:1rem; border:1px solid}
+.flash.ok{background:var(--ok-bg); border-color:#a9d6c1; color:#0b4b34}
+.flash.warn{background:var(--warn-bg); border-color:#e8c98a; color:var(--warn)}
+.flash.error{background:var(--bad-bg); border-color:#e6b6b4; color:var(--bad)}
+.pill{display:inline-block; padding:.1rem .55rem; border-radius:999px; font-size:.78rem; font-weight:600}
+.pill.pending_review{background:var(--warn-bg); color:var(--warn)}
+.pill.posted{background:var(--ok-bg); color:var(--ok)}
+.pill.rejected{background:#eceef1; color:var(--muted)}
+.pill.low{background:var(--bad-bg); color:var(--bad)}
+pre.source{
+  background:#f7f8fa; border:1px solid var(--line); border-radius:var(--radius);
+  padding:.8rem; white-space:pre-wrap; word-break:break-word; max-height:22rem;
+  overflow:auto; font-size:.9rem; margin:0;
+}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+.notes{margin:.6rem 0 0; padding-left:1.1rem}
+.notes li{margin:.2rem 0; color:var(--warn)}
+.empty{padding:2rem 1rem; text-align:center; color:var(--muted)}
+.receipt-photo{max-width:100%; border-radius:var(--radius); border:1px solid var(--line)}
+.row-inline{display:flex; gap:.5rem; flex-wrap:wrap; align-items:flex-end}
+.row-inline > *{flex:1 1 8rem}
+fieldset{border:1px solid var(--line); border-radius:var(--radius); padding:.8rem; margin:0 0 1rem}
+legend{font-weight:700; padding:0 .4rem}
+.scroll-x{overflow-x:auto}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="row">
+    <a class="brand" href="/">Local Business OS</a>
+    <nav>
+      <a href="/" {% if page=='home' %}class="active"{% endif %}>Home</a>
+      <a href="/review" {% if page=='review' %}class="active"{% endif %}>Review{% if pending_count %}<span class="badge">{{ pending_count }}</span>{% endif %}</a>
+      <a href="/ledger" {% if page=='ledger' %}class="active"{% endif %}>Ledger</a>
+      <a href="/stock" {% if page=='stock' %}class="active"{% endif %}>Stock</a>
+      <a href="/reports" {% if page=='reports' %}class="active"{% endif %}>Reports</a>
+      <a href="/status" {% if page=='status' %}class="active"{% endif %}>Status</a>
+    </nav>
+  </div>
+</header>
+<main>
+  {% if msg %}<div class="flash {{ kind or 'ok' }}">{{ msg }}</div>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

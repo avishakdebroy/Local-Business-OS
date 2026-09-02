@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Problem — Local Business OS{% endblock %}
+{% block content %}
+<h1>Something went wrong</h1>
+<div class="flash error">{{ detail }}</div>
+<div class="card">
+  <p>Nothing was lost. Every document you have sent in is still saved.</p>
+  <div class="actions">
+    <a class="btn" href="/">Back to Home</a>
+    <a class="btn secondary" href="/review">Review screen</a>
+  </div>
+</div>
+{% endblock %}

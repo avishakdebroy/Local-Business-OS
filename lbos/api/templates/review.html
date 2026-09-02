@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Review — Local Business OS{% endblock %}
+{% block content %}
+<h1>Review / যাচাই</h1>
+<p class="muted">These entries are saved but <strong>not counted</strong> in any total until you check them.</p>
+
+{% if documents %}
+<div class="card scroll-x">
+  <table>
+    <thead>
+      <tr><th>#</th><th>Type</th><th class="num">Sure?</th><th>What it says</th><th>Why it is here</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for doc in documents %}
+      <tr>
+        <td>{{ doc.id }}</td>
+        <td>{{ doc.doc_type|doc_type_label }}</td>
+        <td class="num">{{ doc.confidence|percent }}</td>
+        <td class="small">{{ (doc.raw_text or doc.original_filename or 'photo')[:80] }}{% if (doc.raw_text or '')|length > 80 %}…{% endif %}</td>
+        <td class="small muted">{{ doc.first_note or 'Below the automatic threshold.' }}</td>
+        <td><a class="btn" href="/review/{{ doc.id }}">Check</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card"><div class="empty">Nothing to review. Everything you have added is recorded.</div></div>
+{% endif %}
+{% endblock %}

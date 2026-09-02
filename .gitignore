@@ -1,15 +1,16 @@
-﻿# Python
 __pycache__/
 *.py[cod]
 .venv/
 venv/
+*.egg-info/
+build/
+dist/
 
-# Env
 .env
-
-# App data
 data/
 
-# OS
+.pytest_cache/
+.coverage
+
 .DS_Store
 Thumbs.db
