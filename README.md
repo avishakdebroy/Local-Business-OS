@@ -89,8 +89,13 @@ application encrypts the backup itself.
 python -m venv .venv
 .venv/bin/pip install -e ".[dev]"      # Windows: .venv\Scripts\pip
 .venv/bin/pytest                        # 131 tests
+.venv/bin/ruff check .                  # lint
 .venv/bin/lbos serve
 ```
+
+CI runs the same two commands on every push and pull request, across Python
+3.11/3.12/3.13 on Linux plus 3.12 on Windows — Windows being the deployment
+target, where path handling and console encoding differ.
 
 ### Layout
 

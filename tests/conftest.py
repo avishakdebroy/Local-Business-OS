@@ -7,10 +7,12 @@ from pathlib import Path
 
 import pytest
 
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-
 from lbos.db.bootstrap import open_db, prepare
 from lbos.settings import Settings
+
+# Third-party deprecation notices are noise in this suite; lbos's own are
+# escalated to errors by the filterwarnings setting in pyproject.toml.
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 TODAY = date(2026, 9, 2)  # a Wednesday
 

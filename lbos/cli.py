@@ -16,7 +16,26 @@ from lbos.reporting.weekly import run_weekly_report
 from lbos.settings import get_settings
 
 
+def _force_utf8_output() -> None:
+    """Print Bengali safely on a Windows console.
+
+    cmd.exe defaults to a legacy code page (437/1252), and the weekly report is
+    bilingual, so an unconfigured console raises UnicodeEncodeError partway
+    through printing it. The .bat launchers also switch the console to UTF-8;
+    this covers the case where the CLI is run some other way.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (ValueError, OSError):  # pragma: no cover - platform dependent
+            pass
+
+
 def main(argv: list[str] | None = None) -> int:
+    _force_utf8_output()
     parser = argparse.ArgumentParser(prog="lbos", description="Local Business OS")
     parser.add_argument("--version", action="version", version=__version__)
     sub = parser.add_subparsers(dest="command")
