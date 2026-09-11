@@ -5,6 +5,8 @@ REM  It sets itself up the first time and starts normally after that.
 REM ===========================================================================
 setlocal
 cd /d "%~dp0"
+REM Bengali text needs a UTF-8 console; cmd.exe defaults to a legacy code page.
+chcp 65001 >nul
 title Local Business OS
 
 echo.

@@ -17,10 +17,16 @@ dependencies = [
     "pytesseract>=0.3.13",
     # zoneinfo has no system tz database on Windows; this ships one.
     "tzdata>=2024.2",
+    # Barcode reading from a phone photo. Pure wheel - no system library, so it
+    # packages into the Windows .exe without extra DLLs.
+    "zxing-cpp>=2.2",
+    "numpy>=1.26",
+    # QR code for phone pairing, rendered as inline SVG.
+    "qrcode>=7.4",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.3", "httpx>=0.28"]
+dev = ["pytest>=8.3", "httpx>=0.28", "ruff==0.15.8"]
 
 [project.scripts]
 lbos = "lbos.cli:main"
@@ -34,6 +40,10 @@ include = ["lbos*"]
 
 [tool.setuptools.package-data]
 lbos = ["db/migrations/*.sql", "api/templates/*.html", "api/static/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

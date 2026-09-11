@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import timedelta
 
 from fastapi import APIRouter, Depends
 
@@ -26,6 +25,7 @@ def health(
         "timezone": settings.timezone,
         "currency": settings.currency,
         "documents": counts,
+        "credit": repo.credit_totals(conn),
         "failing_jobs": [row["job_name"] for row in repo.failing_jobs(conn)],
     }
 
@@ -45,5 +45,6 @@ def summary(
         "currency": settings.currency,
         "totals_paisa": repo.money_totals(conn, iso(start), iso(end)),
         "low_stock": repo.stock_levels(conn, low_only=True),
+        "credit": repo.credit_totals(conn),
         "pending_review": repo.document_status_counts(conn).get("pending_review", 0),
     }

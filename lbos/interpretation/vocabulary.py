@@ -6,6 +6,9 @@ every entry here is lowercase.
 
 from __future__ import annotations
 
+import re
+from functools import lru_cache
+
 # --- Document classification ------------------------------------------------
 
 MONEY_WORDS: tuple[str, ...] = (
@@ -104,9 +107,6 @@ STOCK_OUT_WORDS: tuple[str, ...] = (
 # Matching is boundary-aware. A plain substring search finds "in" inside
 # "miniket" and "bill" inside "billing", which silently corrupts both the
 # document type and the item name.
-
-import re
-from functools import lru_cache
 
 
 def _is_word_char(ch: str) -> bool:

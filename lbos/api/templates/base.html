@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Local Business OS{% endblock %}</title>
+<!-- Inline so it needs no request and works with no internet. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230f6f4c'/%3E%3Ctext x='16' y='23' font-size='19' text-anchor='middle' fill='white' font-family='sans-serif'%3E%E0%A7%B3%3C/text%3E%3C/svg%3E">
 <style>
 /* Everything is inlined: the shop may have no internet at all. */
 :root{
@@ -27,6 +29,7 @@ nav a{
   display:inline-block; font-size:.95rem;
 }
 nav a:hover,nav a.active{background:rgba(255,255,255,.2)}
+.badge.owed{background:#ffd9d6; color:#8a1c18}
 .badge{
   background:#ffd166; color:#3a2a00; border-radius:999px; padding:.05rem .45rem;
   font-size:.8rem; font-weight:700; margin-left:.25rem;
@@ -89,6 +92,24 @@ pre.source{
 fieldset{border:1px solid var(--line); border-radius:var(--radius); padding:.8rem; margin:0 0 1rem}
 legend{font-weight:700; padding:0 .4rem}
 .scroll-x{overflow-x:auto}
+.daynav{display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:.8rem}
+.daynav .today-link{margin-left:auto}
+.book{border:1px solid var(--line); border-radius:var(--radius); background:var(--card); overflow:hidden}
+.book .row{display:flex; gap:.8rem; padding:.7rem .9rem; border-bottom:1px solid var(--line); align-items:baseline}
+.book .row:last-child{border-bottom:none}
+.book .row .what{flex:1 1 auto; min-width:0}
+.book .row .what b{font-weight:600}
+.book .row .amt{font-variant-numeric:tabular-nums; white-space:nowrap; font-weight:700}
+.book .row.sale .amt{color:var(--ok)}
+.book .row.purchase .amt{color:var(--bad)}
+.book .row.credit_charge .amt{color:var(--warn)}
+.book .row.credit_payment .amt{color:var(--ok)}
+.tag{font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:.05rem .45rem}
+.balance-pos{color:var(--bad); font-weight:700}
+.balance-zero{color:var(--muted)}
+.qr{max-width:260px}
+.qr svg{width:100%; height:auto}
+.code{font-family:ui-monospace,Consolas,monospace; font-size:2rem; letter-spacing:.3em; font-weight:700}
 </style>
 </head>
 <body>
@@ -96,11 +117,13 @@ legend{font-weight:700; padding:0 .4rem}
   <div class="row">
     <a class="brand" href="/">Local Business OS</a>
     <nav>
-      <a href="/" {% if page=='home' %}class="active"{% endif %}>Home</a>
+      <a href="/" {% if page=='home' %}class="active"{% endif %}>Day book</a>
+      <a href="/khata" {% if page=='khata' %}class="active"{% endif %}>Khata{% if owed_count %}<span class="badge owed">{{ owed_count }}</span>{% endif %}</a>
       <a href="/review" {% if page=='review' %}class="active"{% endif %}>Review{% if pending_count %}<span class="badge">{{ pending_count }}</span>{% endif %}</a>
       <a href="/ledger" {% if page=='ledger' %}class="active"{% endif %}>Ledger</a>
       <a href="/stock" {% if page=='stock' %}class="active"{% endif %}>Stock</a>
       <a href="/reports" {% if page=='reports' %}class="active"{% endif %}>Reports</a>
+      <a href="/link" {% if page=='link' %}class="active"{% endif %}>Phone</a>
       <a href="/status" {% if page=='status' %}class="active"{% endif %}>Status</a>
     </nav>
   </div>

@@ -1,0 +1,55 @@
+{% extends "phone_base.html" %}
+{% block title %}Scan a product{% endblock %}
+{% block headerextra %}<span class="back">· Scan</span>{% endblock %}
+{% block content %}
+<h1>Scan a product</h1>
+
+{% if result %}
+  {% if not result.code %}
+    <div class="flash warn">
+      No barcode could be read in that photo. Hold the phone steady, fill the
+      frame with the barcode, and make sure there is enough light.
+    </div>
+  {% else %}
+    <div class="flash ok">
+      Barcode read: <span class="code-out">{{ result.code.text }}</span>
+      <span class="small muted">({{ result.code.format }})</span>
+    </div>
+    {% if result.item %}
+      <div class="card">
+        <h2 style="margin-top:0">{{ result.item.name }}</h2>
+        {% if result.item.brand %}<p class="muted">{{ result.item.brand }}{% if result.item.variant %} · {{ result.item.variant }}{% endif %}</p>{% endif %}
+        <div class="stat"><span>On hand</span><span class="v">{{ result.item.on_hand_milli|qty(result.item.unit) }}</span></div>
+        {% if result.item.mrp_paisa %}<div class="stat"><span>MRP</span><span class="v">{{ result.item.mrp_paisa|taka }}</span></div>{% endif %}
+      </div>
+    {% else %}
+      <div class="card">
+        <p><strong>This barcode is not in your list yet.</strong> Give it a name and it will be saved.</p>
+        <form method="post" action="/phone/scan/save">
+          <input type="hidden" name="code" value="{{ result.code.text }}">
+          <label for="name">Product name</label>
+          <input id="name" type="text" name="name" required placeholder="Meril Lip Gel">
+          <label for="brand">Brand <span class="hint">optional</span></label>
+          <input id="brand" type="text" name="brand" placeholder="Square Toiletries">
+          <label for="variant">Shade or size <span class="hint">optional</span></label>
+          <input id="variant" type="text" name="variant" placeholder="15 ml">
+          <button type="submit">Save this product</button>
+        </form>
+      </div>
+    {% endif %}
+  {% endif %}
+{% endif %}
+
+<div class="card">
+  <form method="post" action="/phone/scan" enctype="multipart/form-data">
+    <label for="photo">Photograph the barcode
+      <span class="hint">Fill the frame with the barcode. Good light helps.</span>
+    </label>
+    <!-- capture= opens the camera through the normal picker, so this needs no
+         camera permission and no HTTPS certificate. -->
+    <input id="photo" type="file" name="photo" accept="image/*" capture="environment" required>
+    <button type="submit">Read the barcode</button>
+  </form>
+</div>
+<a class="btn secondary" href="/phone">Back</a>
+{% endblock %}

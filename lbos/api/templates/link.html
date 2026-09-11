@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Link my phone — Local Business OS{% endblock %}
+{% block content %}
+<h1>Link my phone / ফোন যুক্ত করুন</h1>
+
+{% if not enabled %}
+<div class="flash warn">
+  <strong>The phone link is switched off.</strong>
+  <p style="margin:.5rem 0 0">To turn it on, open the file <code>.env</code> next to the program and set:</p>
+  <pre class="source" style="margin:.5rem 0">LBOS_PHONE_LINK_ENABLED=true</pre>
+  <p style="margin:.4rem 0 0">Then close the black window and start the program again.</p>
+</div>
+{% elif not address %}
+<div class="flash error">
+  This computer is not on a Wi-Fi or network, so a phone cannot reach it.
+  Connect the computer to the same Wi-Fi as your phone and reload this page.
+</div>
+{% else %}
+<div class="grid two">
+  <div class="card">
+    <h2 style="margin-top:0">1. Point your phone camera here</h2>
+    <div class="qr">{{ qr|safe }}</div>
+    <p class="small muted">Open the normal camera app on your phone and hold it over this square. Tap the link that appears.</p>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">2. Or type it by hand</h2>
+    <p class="small muted">On the phone browser, go to:</p>
+    <pre class="source">http://{{ address }}:{{ port }}/phone</pre>
+    <p class="small muted">Then enter this code:</p>
+    <p class="code">{{ code }}</p>
+    <p class="small muted">The code works for {{ ttl_minutes }} minutes and once only. Reload this page for a new one.</p>
+    <div class="flash ok" style="margin-top:1rem">
+      <strong>Your phone and this computer must be on the same Wi-Fi.</strong>
+      Nothing is sent over the internet.
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<h2>Linked phones</h2>
+<div class="card scroll-x">
+  {% if devices %}
+  <table>
+    <thead><tr><th>Phone</th><th>Linked</th><th>Last used</th><th></th></tr></thead>
+    <tbody>
+      {% for d in devices %}
+      <tr>
+        <td>{{ d.name }}</td>
+        <td class="small muted">{{ d.created_at|when }}</td>
+        <td class="small muted">{{ d.last_seen_at|when }}</td>
+        <td>
+          <form method="post" action="/link/revoke/{{ d.id }}" onsubmit="return confirm('Unlink this phone?')">
+            <button type="submit" class="danger small">Unlink</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No phone is linked yet.</div>
+  {% endif %}
+</div>
+{% if devices %}
+<div class="actions">
+  <form method="post" action="/link/revoke-all" onsubmit="return confirm('Unlink every phone?')">
+    <button type="submit" class="danger">Unlink all phones</button>
+  </form>
+</div>
+{% endif %}
+
+<h2>What a linked phone can do</h2>
+<div class="card">
+  <ul>
+    <li><strong>Photograph a barcode</strong> — the computer reads the number and finds the product.</li>
+    <li><strong>Photograph your notebook page or a supplier bill</strong> — it goes to the Review screen on the computer.</li>
+    <li><strong>See today's figures</strong> — read only.</li>
+  </ul>
+  <p class="small muted" style="margin-bottom:0">
+    A phone <em>cannot</em> change the books, remove entries, or reach the backup and settings screens.
+    Those stay on this computer.
+  </p>
+</div>
+{% endblock %}

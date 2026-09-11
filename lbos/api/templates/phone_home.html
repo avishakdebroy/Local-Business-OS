@@ -1,0 +1,27 @@
+{% extends "phone_base.html" %}
+{% block title %}Shop{% endblock %}
+{% block content %}
+<h1>{{ today }}</h1>
+
+<a class="big" href="/phone/scan">
+  <span class="ic">🔍</span>
+  <span>Scan a product<span class="sub">Photograph the barcode</span></span>
+</a>
+<a class="big" href="/phone/note">
+  <span class="ic">📄</span>
+  <span>Send a page or bill<span class="sub">Photo of your notebook or a supplier bill</span></span>
+</a>
+
+<div class="card">
+  <div class="stat"><span>Sales today / আজকের বিক্রয়</span><span class="v">{{ totals.sale_paisa|taka }}</span></div>
+  <div class="stat"><span>Purchases today / ক্রয়</span><span class="v">{{ totals.purchase_paisa|taka }}</span></div>
+  <div class="stat"><span>Owed to you / মোট বাকি</span><span class="v">{{ credit.outstanding_paisa|taka }}</span></div>
+  {% if pending %}
+  <div class="stat"><span class="muted">Waiting for review</span><span class="v">{{ pending }}</span></div>
+  {% endif %}
+</div>
+
+<p class="small muted">
+  Figures are read only here. To record, correct or remove an entry, use the shop computer.
+</p>
+{% endblock %}

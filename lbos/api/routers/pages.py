@@ -8,17 +8,25 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 
 from lbos.api.deps import get_conn, get_settings
 from lbos.api.routers.common import context
 from lbos.api.templating import redirect, templates
 from lbos.domain.errors import ConflictError, NotFoundError
-from lbos.domain.periods import iso, local_today, parse_iso_date, week_window
+from lbos.domain.periods import iso, local_today, parse_iso_date
 from lbos.domain.quantity import to_milli
 from lbos.ledger import posting
 from lbos.ledger import repositories as repo
-from lbos.ops.backup import free_space_bytes, run_backup
+from lbos.ops import support
+from lbos.ops.backup import (
+    copy_to_drive,
+    free_space_bytes,
+    latest_archive,
+    removable_drives,
+    run_backup,
+)
+from lbos.reporting import daybook
 from lbos.reporting.weekly import run_weekly_report
 from lbos.settings import Settings
 
@@ -40,24 +48,24 @@ def _human_bytes(count: int) -> str:
 @router.get("/", response_class=HTMLResponse)
 def home(
     request: Request,
+    day: str | None = None,
     conn: sqlite3.Connection = Depends(get_conn),
     settings: Settings = Depends(get_settings),
 ):
+    """The day book is the home screen: the page a shopkeeper already knows."""
     today = local_today(settings.timezone)
-    week_start, week_end = week_window(settings.timezone, anchor=today)
+    viewing = parse_iso_date(day) or today
 
     return templates.TemplateResponse(
         request,
-        "home.html",
+        "daybook.html",
         context(
             request, conn, "home",
+            book=daybook.build(conn, viewing),
             today=iso(today),
-            today_totals=repo.money_totals(conn, iso(today), iso(today)),
-            week_totals=repo.money_totals(conn, iso(week_start), iso(week_end)),
-            week_start=iso(week_start),
-            week_end=iso(week_end),
-            low_stock=repo.stock_levels(conn, low_only=True)[:8],
-            recent=repo.recent_documents(conn, limit=12),
+            is_today=(viewing == today),
+            low_stock=repo.stock_levels(conn, low_only=True)[:6],
+            recent=repo.recent_documents(conn, limit=6),
         ),
     )
 
@@ -223,7 +231,8 @@ def status(
     conn: sqlite3.Connection = Depends(get_conn),
     settings: Settings = Depends(get_settings),
 ):
-    problems: list[str] = []
+    report = support.health(settings)
+    problems: list[str] = list(support.problems(report))
 
     ocr_status = "off (photos are stored but not read)"
     if settings.ocr_enabled:
@@ -257,15 +266,13 @@ def status(
     backups = sorted(settings.backups_dir.glob("*.zip"), key=lambda p: p.stat().st_mtime, reverse=True)
     if not backups:
         problems.append("No backup has been made yet. Use the button below to make one now.")
-
-    failing = repo.failing_jobs(conn)
-    for job in failing:
-        problems.append(f"The scheduled job '{job['job_name']}' failed on its last run.")
+    elif not removable_drives():
+        problems.append(
+            "Your backups are only on this computer. Plug in a pen drive and press "
+            "“Copy to pen drive” so a stolen or broken laptop does not take the books with it."
+        )
 
     free = free_space_bytes(settings.data_dir)
-    if free < 500 * 1024 * 1024:
-        problems.append(f"Only {_human_bytes(free)} of disk space is left.")
-
     jobs = getattr(request.app.state, "jobs", None)
     return templates.TemplateResponse(
         request,
@@ -286,7 +293,47 @@ def status(
             ),
             next_runs=jobs.next_runs() if jobs else [],
             job_runs=repo.recent_job_runs(conn, limit=15),
+            report=report,
+            drives=removable_drives(),
+            latest_backup=latest_archive(settings),
+            human_bytes=_human_bytes,
         ),
+    )
+
+
+@router.post("/status/repair")
+def repair_now(settings: Settings = Depends(get_settings)):
+    result = support.repair(settings)
+    joined = " ".join(result["steps"])
+    return redirect("/status", joined, "ok" if result["status"] == "ok" else "error")
+
+
+@router.get("/status/support-file")
+def support_file(settings: Settings = Depends(get_settings)):
+    """A small file describing this installation, for whoever helps the owner."""
+    bundle = support.build_bundle(settings)
+    return FileResponse(
+        bundle.path, media_type="application/zip", filename=bundle.path.name
+    )
+
+
+@router.post("/status/copy-to-drive")
+def copy_backup_to_drive(
+    drive: str = Form(...),
+    settings: Settings = Depends(get_settings),
+):
+    archive = latest_archive(settings)
+    if archive is None:
+        return redirect("/status", "Make a backup first, then copy it.", "error")
+
+    result = copy_to_drive(settings, archive, Path(drive))
+    if result["status"] != "ok":
+        return redirect("/status", result["detail"], "error")
+    return redirect(
+        "/status",
+        f"Backup copied to the drive ({_human_bytes(result['size_bytes'])}). "
+        "It is safe to unplug now.",
+        "ok",
     )
 
 

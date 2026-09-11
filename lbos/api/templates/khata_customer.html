@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{{ customer.name }} — Khata{% endblock %}
+{% block content %}
+<h1>{{ customer.name }}</h1>
+<p class="muted small">
+  {% if customer.phone %}{{ customer.phone }} · {% endif %}
+  {{ customer.entry_count }} entr{{ 'y' if customer.entry_count == 1 else 'ies' }}
+  {% if customer.last_activity %} · last activity {{ customer.last_activity }}{% endif %}
+</p>
+
+<div class="tiles">
+  <div class="tile {{ 'bad' if customer.balance_paisa > 0 else 'good' }}">
+    <div class="label">{% if customer.balance_paisa > 0 %}Owes you / বাকি{% else %}Settled / পরিশোধিত{% endif %}</div>
+    <div class="value">{{ customer.balance_paisa|taka }}</div>
+  </div>
+</div>
+
+<div class="grid two">
+  <form class="card" method="post" action="/khata/{{ customer.customer_id }}/entry">
+    <input type="hidden" name="kind" value="charge">
+    <h2 style="margin-top:0">Give credit / বাকি দিন</h2>
+    <label for="c_amount">Amount in taka</label>
+    <input id="c_amount" type="text" inputmode="decimal" name="amount" required placeholder="450">
+    <label for="c_date">Date</label>
+    <input id="c_date" type="date" name="entry_date" value="{{ today }}" required>
+    <p class="small muted" style="margin:.35rem 0 0">Today is <strong>{{ today }}</strong>.</p>
+    <label for="c_note">What for? <span class="hint">optional</span></label>
+    <input id="c_note" type="text" name="note" placeholder="2 Meril cream">
+    <div class="actions"><button type="submit">Record credit</button></div>
+  </form>
+
+  <form class="card" method="post" action="/khata/{{ customer.customer_id }}/entry">
+    <input type="hidden" name="kind" value="payment">
+    <h2 style="margin-top:0">Take payment / জমা নিন</h2>
+    <label for="p_amount">Amount in taka</label>
+    <input id="p_amount" type="text" inputmode="decimal" name="amount" required placeholder="200">
+    <label for="p_date">Date</label>
+    <input id="p_date" type="date" name="entry_date" value="{{ today }}" required>
+    <p class="small muted" style="margin:.35rem 0 0">Today is <strong>{{ today }}</strong>.</p>
+    <label for="p_note">Note <span class="hint">optional</span></label>
+    <input id="p_note" type="text" name="note">
+    <div class="actions"><button type="submit">Record payment</button></div>
+  </form>
+</div>
+
+<h2>History / হিসাব</h2>
+<div class="card scroll-x">
+  {% if entries %}
+  <table>
+    <thead><tr><th>Date</th><th>Entry</th><th>Note</th><th class="num">Amount</th><th class="num">Balance after</th><th></th></tr></thead>
+    <tbody>
+      {% for e in entries %}
+      <tr>
+        <td>{{ e.entry_date }}</td>
+        <td>{{ kind_labels.get(e.kind, e.kind) }}</td>
+        <td class="small muted">{{ e.note or '—' }}</td>
+        <td class="num">{{ e.amount_paisa|taka }}</td>
+        <td class="num {{ 'balance-pos' if e.balance_after > 0 else 'balance-zero' }}">{{ e.balance_after|taka }}</td>
+        <td>
+          <form method="post" action="/khata/{{ customer.customer_id }}/entry/{{ e.id }}/void"
+                onsubmit="return confirm('Remove this entry? The balance will change.')">
+            <button type="submit" class="danger small">Remove</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No entries yet for {{ customer.name }}.</div>
+  {% endif %}
+</div>
+
+<div class="actions"><a class="btn secondary" href="/khata">← All customers</a></div>
+{% endblock %}

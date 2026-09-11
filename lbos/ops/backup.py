@@ -12,8 +12,10 @@ Two things the naive version of this gets wrong, and how they are handled:
 
 from __future__ import annotations
 
+import os
 import shutil
 import sqlite3
+import sys
 import subprocess
 import tempfile
 import zipfile
@@ -154,3 +156,107 @@ def restore_preview(archive_path: Path) -> list[str]:
 
 def free_space_bytes(path: Path) -> int:
     return shutil.disk_usage(path).free
+
+
+# --- Copying a backup off the machine ----------------------------------------
+#
+# A backup that lives only on the shop's one laptop protects against almost
+# nothing: the realistic disasters are the laptop being stolen, dropped, or
+# having its disk fail. In a town with slow internet, a pen drive is the channel
+# that actually works, so it gets a button.
+
+
+@dataclass
+class RemovableDrive:
+    path: Path
+    label: str
+    free_bytes: int
+
+
+def removable_drives() -> list[RemovableDrive]:
+    """Pen drives and memory cards currently plugged in."""
+    found: list[RemovableDrive] = []
+
+    if sys.platform == "win32":  # pragma: no cover - exercised on Windows only
+        import ctypes
+        import string
+
+        DRIVE_REMOVABLE = 2
+        kernel32 = ctypes.windll.kernel32
+        mask = kernel32.GetLogicalDrives()
+        for index, letter in enumerate(string.ascii_uppercase):
+            if not mask & (1 << index):
+                continue
+            root = f"{letter}:\\"
+            if kernel32.GetDriveTypeW(ctypes.c_wchar_p(root)) != DRIVE_REMOVABLE:
+                continue
+            try:
+                found.append(
+                    RemovableDrive(Path(root), root, shutil.disk_usage(root).free)
+                )
+            except OSError:
+                continue
+        return found
+
+    # Linux and macOS mount removable media under these roots.
+    for parent in (Path("/media"), Path("/run/media"), Path("/Volumes")):
+        if not parent.exists():
+            continue
+        for candidate in parent.iterdir():
+            targets = [candidate]
+            if candidate.is_dir() and parent.name in ("media", "media"):
+                targets += [c for c in candidate.iterdir() if c.is_dir()]
+            for target in targets:
+                if not target.is_dir():
+                    continue
+                try:
+                    found.append(
+                        RemovableDrive(target, target.name, shutil.disk_usage(target).free)
+                    )
+                except OSError:
+                    continue
+    return found
+
+
+def copy_to_drive(settings: Settings, archive: Path, drive: Path) -> dict[str, Any]:
+    """Copy one backup archive onto a removable drive. Never raises."""
+    try:
+        if not archive.is_file():
+            return {"status": "error", "detail": "That backup file is no longer there."}
+        if not drive.is_dir():
+            return {"status": "error", "detail": "That drive is not plugged in any more."}
+
+        free = shutil.disk_usage(drive).free
+        size = archive.stat().st_size
+        if free < size * 1.1:
+            return {
+                "status": "error",
+                "detail": f"Not enough room on the drive: needs {size // 1024 // 1024} MB, "
+                          f"has {free // 1024 // 1024} MB.",
+            }
+
+        folder = drive / "LocalBusinessOS-Backups"
+        folder.mkdir(parents=True, exist_ok=True)
+        target = folder / archive.name
+
+        # Copy through a writable handle so the flush happens on a handle that
+        # can actually be flushed: os.fsync() on Windows calls _commit(), which
+        # needs the file open for writing and fails on a read-only one. A pen
+        # drive is exactly where an unflushed write is lost when it is pulled
+        # out, so the flush has to really happen before we say it is safe.
+        with open(archive, "rb") as source, open(target, "wb") as destination:
+            shutil.copyfileobj(source, destination)
+            destination.flush()
+            os.fsync(destination.fileno())
+        shutil.copystat(archive, target)
+
+        return {"status": "ok", "path": str(target), "size_bytes": size}
+    except Exception as exc:
+        return {"status": "error", "detail": f"{type(exc).__name__}: {exc}"}
+
+
+def latest_archive(settings: Settings) -> Path | None:
+    archives = sorted(
+        settings.backups_dir.glob("*.zip"), key=lambda p: p.stat().st_mtime, reverse=True
+    )
+    return archives[0] if archives else None

@@ -2,7 +2,6 @@
 
 import sqlite3
 import zipfile
-from pathlib import Path
 
 from lbos.ledger import repositories as repo
 from lbos.ops.backup import DB_PREFIX, prune, run_backup, snapshot_database
