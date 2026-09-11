@@ -77,12 +77,27 @@ def test_a_backup_can_be_copied_to_a_pen_drive(conn, settings, tmp_path):
     drive = tmp_path / "PENDRIVE"
     drive.mkdir()
     result = backup.copy_to_drive(settings, Path(archive.path), drive)
-    assert result["status"] == "ok"
+    assert result["status"] == "ok", result.get("detail")
 
     copied = drive / "LocalBusinessOS-Backups" / Path(archive.path).name
     assert copied.is_file()
     with zipfile.ZipFile(copied) as z:
         assert "shop.db" in z.namelist()
+
+
+def test_the_copy_is_byte_for_byte_and_flushed(conn, settings, tmp_path):
+    """The flush must run on a writable handle, or Windows reports a false failure."""
+    archive = backup.run_backup(settings, include_uploads=True)
+    drive = tmp_path / "PENDRIVE"
+    drive.mkdir()
+
+    result = backup.copy_to_drive(settings, Path(archive.path), drive)
+    assert result["status"] == "ok", result.get("detail")
+
+    source = Path(archive.path)
+    copied = drive / "LocalBusinessOS-Backups" / source.name
+    assert copied.read_bytes() == source.read_bytes()
+    assert copied.stat().st_size == source.stat().st_size
 
 
 def test_copying_to_a_drive_that_was_pulled_out_is_reported(conn, settings, tmp_path):

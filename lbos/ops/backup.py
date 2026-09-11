@@ -238,10 +238,18 @@ def copy_to_drive(settings: Settings, archive: Path, drive: Path) -> dict[str, A
         folder = drive / "LocalBusinessOS-Backups"
         folder.mkdir(parents=True, exist_ok=True)
         target = folder / archive.name
-        shutil.copy2(archive, target)
-        # Flush to the device before telling the owner it is safe to unplug.
-        with open(target, "rb") as handle:
-            os.fsync(handle.fileno())
+
+        # Copy through a writable handle so the flush happens on a handle that
+        # can actually be flushed: os.fsync() on Windows calls _commit(), which
+        # needs the file open for writing and fails on a read-only one. A pen
+        # drive is exactly where an unflushed write is lost when it is pulled
+        # out, so the flush has to really happen before we say it is safe.
+        with open(archive, "rb") as source, open(target, "wb") as destination:
+            shutil.copyfileobj(source, destination)
+            destination.flush()
+            os.fsync(destination.fileno())
+        shutil.copystat(archive, target)
+
         return {"status": "ok", "path": str(target), "size_bytes": size}
     except Exception as exc:
         return {"status": "error", "detail": f"{type(exc).__name__}: {exc}"}
