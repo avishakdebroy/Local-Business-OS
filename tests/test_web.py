@@ -183,3 +183,103 @@ def test_a_duplicate_upload_warns_instead_of_double_counting(client):
     response = client.post("/capture/text", data={"text": CLEAR_PURCHASE, "hint": "purchase"})
     assert "already+recorded" in location(response)
     assert client.get("/api/summary?days=30").json()["totals_paisa"]["purchase_count"] == 1
+
+
+# --- Day book and khata -----------------------------------------------------
+
+
+def test_the_day_book_is_the_home_screen(client):
+    page = client.get("/").text
+    assert "The day / আজকের পাতা" in page
+    assert "Cash in" in page and "Owed to you" in page
+
+
+def test_the_day_book_can_page_backwards(client):
+    page = client.get("/?day=2026-09-10").text
+    assert "2026-09-10" in page
+    assert "2026-09-09" in page  # previous-day link
+
+
+def test_adding_a_customer_and_giving_credit(client):
+    response = client.post("/khata/new", data={"name": "Rahim Mia", "phone": "01712345678"})
+    assert location(response).startswith("/khata/1")
+
+    response = client.post("/khata/1/entry", data={
+        "kind": "charge", "amount": "450", "entry_date": "2026-09-11", "note": "2 Meril cream",
+    })
+    assert "owes" in location(response)
+
+    page = client.get("/khata/1").text
+    assert "Rahim Mia" in page and "450.00" in page and "2 Meril cream" in page
+
+
+def test_taking_a_payment_reduces_the_balance(client):
+    client.post("/khata/new", data={"name": "Rahim Mia", "phone": ""})
+    client.post("/khata/1/entry", data={"kind": "charge", "amount": "450", "entry_date": "2026-09-11"})
+    client.post("/khata/1/entry", data={"kind": "payment", "amount": "200", "entry_date": "2026-09-11"})
+    assert "250.00" in client.get("/khata/1").text
+
+
+def test_overpaying_is_refused_on_screen(client):
+    client.post("/khata/new", data={"name": "Rahim Mia", "phone": ""})
+    client.post("/khata/1/entry", data={"kind": "charge", "amount": "450", "entry_date": "2026-09-11"})
+    response = client.post("/khata/1/entry", data={
+        "kind": "payment", "amount": "5000", "entry_date": "2026-09-11",
+    })
+    assert "kind=error" in location(response)
+
+
+def test_a_typo_in_a_credit_amount_is_refused(client):
+    client.post("/khata/new", data={"name": "Rahim Mia", "phone": ""})
+    response = client.post("/khata/1/entry", data={
+        "kind": "charge", "amount": "four fifty", "entry_date": "2026-09-11",
+    })
+    assert "kind=error" in location(response)
+
+
+def test_removing_a_credit_entry_changes_the_balance(client):
+    client.post("/khata/new", data={"name": "Rahim Mia", "phone": ""})
+    client.post("/khata/1/entry", data={"kind": "charge", "amount": "450", "entry_date": "2026-09-11"})
+    client.post("/khata/1/entry/1/void")
+    assert client.get("/api/health").json()["credit"]["outstanding_paisa"] == 0
+
+
+def test_credit_appears_on_the_day_book_but_not_as_cash(client):
+    client.post("/khata/new", data={"name": "Rahim Mia", "phone": ""})
+    client.post("/khata/1/entry", data={"kind": "charge", "amount": "450", "entry_date": "2026-09-11"})
+    page = client.get("/?day=2026-09-11").text
+    assert "Rahim Mia on credit" in page
+    assert "not</strong> counted as cash in" in page
+
+
+def test_the_khata_badge_counts_people_who_owe(client):
+    client.post("/khata/new", data={"name": "Rahim Mia", "phone": ""})
+    client.post("/khata/1/entry", data={"kind": "charge", "amount": "450", "entry_date": "2026-09-11"})
+    assert 'class="badge owed">1<' in client.get("/").text
+
+
+def test_an_unknown_customer_shows_a_friendly_page(client):
+    response = client.get("/khata/999")
+    assert response.status_code == 404
+    assert "Something went wrong" in response.text
+
+
+# --- Support ----------------------------------------------------------------
+
+
+def test_the_support_file_downloads(client):
+    response = client.get("/status/support-file")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+    assert len(response.content) < 200_000
+
+
+def test_repair_reports_what_it_did(client):
+    response = client.post("/status/repair")
+    assert "kind=ok" in location(response)
+    assert "Integrity" in location(response)
+
+
+def test_the_link_page_explains_how_to_switch_the_phone_link_on(client):
+    page = client.get("/link").text
+    assert "LBOS_PHONE_LINK_ENABLED=true" in page

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f6f4c">
+<title>{% block title %}Shop phone{% endblock %}</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230f6f4c'/%3E%3Ctext x='16' y='23' font-size='19' text-anchor='middle' fill='white' font-family='sans-serif'%3E%E0%A7%B3%3C/text%3E%3C/svg%3E">
+<style>
+/* A separate, much simpler sheet: this is held in one hand, often outdoors,
+   sometimes by someone whose reading glasses are elsewhere. */
+:root{--bg:#f4f5f7;--card:#fff;--ink:#15181d;--muted:#5b6472;--line:#d9dee6;
+      --brand:#0f6f4c;--brand-dark:#0b5439;--warn:#8a5300;--warn-bg:#fff5e0;
+      --bad:#a2201c;--bad-bg:#fdeceb;--ok:#0f6f4c;--ok-bg:#e7f4ee;--r:14px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:19px;line-height:1.5;
+     font-family:"Segoe UI","Nirmala UI",system-ui,-apple-system,"Noto Sans Bengali",sans-serif}
+header{background:var(--brand);color:#fff;padding:1rem 1.1rem;display:flex;align-items:center;gap:.6rem}
+header a{color:#fff;text-decoration:none;font-weight:700;font-size:1.15rem}
+header .back{opacity:.85;font-weight:400;font-size:1rem}
+main{padding:1.1rem;max-width:640px;margin:0 auto}
+h1{font-size:1.3rem;margin:.2rem 0 1rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:1.1rem;margin-bottom:1rem}
+/* Big enough to hit with a thumb without looking. */
+.big{display:flex;align-items:center;gap:.9rem;width:100%;padding:1.15rem 1.1rem;margin-bottom:.9rem;
+     background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+     text-decoration:none;color:var(--ink);font-size:1.1rem;font-weight:600;min-height:68px}
+.big .ic{font-size:1.8rem;line-height:1}
+.big .sub{display:block;font-weight:400;font-size:.85rem;color:var(--muted);margin-top:.15rem}
+.big:active{background:#eef0f4}
+button,.btn{font:inherit;font-weight:700;padding:1rem 1.2rem;border-radius:var(--r);border:none;
+            background:var(--brand);color:#fff;width:100%;min-height:60px;cursor:pointer;
+            text-align:center;text-decoration:none;display:block}
+button.secondary,.btn.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
+input[type=file],input[type=text],select{width:100%;padding:.9rem;font:inherit;
+     border:1px solid var(--line);border-radius:var(--r);background:#fff;margin-bottom:.9rem}
+label{display:block;font-weight:600;margin:.3rem 0 .35rem}
+.hint{font-weight:400;color:var(--muted);font-size:.85rem}
+.flash{padding:.9rem 1rem;border-radius:var(--r);margin-bottom:1rem;border:1px solid}
+.flash.ok{background:var(--ok-bg);border-color:#a9d6c1;color:#0b4b34}
+.flash.warn{background:var(--warn-bg);border-color:#e8c98a;color:var(--warn)}
+.flash.error{background:var(--bad-bg);border-color:#e6b6b4;color:var(--bad)}
+.stat{display:flex;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid var(--line)}
+.stat:last-child{border-bottom:none}
+.stat .v{font-weight:700;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}.small{font-size:.85rem}
+.code-out{font-family:ui-monospace,Consolas,monospace;font-size:1.3rem;font-weight:700;word-break:break-all}
+</style>
+</head>
+<body>
+<header>
+  <a href="/phone">শপ / Shop</a>
+  {% block headerextra %}{% endblock %}
+</header>
+<main>
+  {% if msg %}<div class="flash {{ kind or 'ok' }}">{{ msg }}</div>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

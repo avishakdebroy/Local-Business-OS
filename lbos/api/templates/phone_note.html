@@ -1,0 +1,26 @@
+{% extends "phone_base.html" %}
+{% block title %}Send a page{% endblock %}
+{% block headerextra %}<span class="back">· Send a page</span>{% endblock %}
+{% block content %}
+<h1>Send a page or bill</h1>
+<div class="card">
+  <p class="small muted">
+    Photograph a page of your notebook or a supplier's bill. It is saved straight away.
+    You check and confirm it later on the shop computer, so nothing is counted by mistake.
+  </p>
+  <form method="post" action="/phone/note" enctype="multipart/form-data">
+    <label for="photo">Take the photo</label>
+    <input id="photo" type="file" name="photo" accept="image/*" capture="environment" required>
+    <label for="hint">What is on the page?</label>
+    <select id="hint" name="hint">
+      <option value="auto" selected>Not sure / জানি না</option>
+      <option value="sale">Sales / বিক্রয়</option>
+      <option value="purchase">A bill I paid / ক্রয়</option>
+      <option value="stock">Stock / মজুদ</option>
+      <option value="memo">Just a note / নোট</option>
+    </select>
+    <button type="submit">Send to the computer</button>
+  </form>
+</div>
+<a class="btn secondary" href="/phone">Back</a>
+{% endblock %}

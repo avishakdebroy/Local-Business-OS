@@ -6,13 +6,14 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 
 from lbos import __version__
-from lbos.api.routers import api, capture, pages, review
+from lbos.api.routers import api, capture, khata, link, pages, phone, review
 from lbos.api.templating import templates
 from lbos.db.bootstrap import prepare
 from lbos.ops.scheduler import Jobs
+from lbos.phone.network import is_loopback
 from lbos.settings import Settings, get_settings
 
 log = logging.getLogger("lbos")
@@ -57,9 +58,32 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = resolved
 
+    @app.middleware("http")
+    async def confine_remote_clients(request: Request, call_next):
+        """The laptop gets everything; anything else on the network gets /phone.
+
+        Switching the phone link on means listening on the Wi-Fi, which would
+        otherwise expose the whole ledger to every device on it. Requests that
+        did not come from this machine are held to the phone pages, and those
+        pages check for a paired-device token of their own.
+        """
+        client = request.client.host if request.client else None
+        if not is_loopback(client):
+            if not resolved.phone_link_enabled:
+                return PlainTextResponse(
+                    "This program is only available on the computer it runs on.",
+                    status_code=403,
+                )
+            if not request.url.path.startswith("/phone"):
+                return RedirectResponse("/phone", status_code=303)
+        return await call_next(request)
+
     app.include_router(pages.router)
     app.include_router(capture.router)
     app.include_router(review.router)
+    app.include_router(khata.router)
+    app.include_router(link.router)
+    app.include_router(phone.router)
     app.include_router(api.router)
 
     @app.exception_handler(HTTPException)

@@ -81,7 +81,7 @@ def main(argv: list[str] | None = None) -> int:
     prepare(settings)
     uvicorn.run(
         "lbos.main:app",
-        host=args.host or settings.host,
+        host=args.host or settings.bind_host,
         port=args.port or settings.port,
         log_level="info",
     )

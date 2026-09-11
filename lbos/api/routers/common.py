@@ -19,6 +19,7 @@ def context(
         "request": request,
         "page": page,
         "pending_count": counts.get("pending_review", 0),
+        "owed_count": repo.credit_totals(conn)["customers_owing"],
         "msg": request.query_params.get("msg"),
         "kind": request.query_params.get("kind", "ok"),
     }

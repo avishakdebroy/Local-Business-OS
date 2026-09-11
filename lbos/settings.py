@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8000
 
+    # --- Phone link ---
+    # Off by default. When on, the server also listens on the local network so
+    # the shopkeeper's phone can reach it; remote clients are confined to the
+    # /phone pages and must present a paired-device token.
+    phone_link_enabled: bool = False
+
     # --- OCR ---
     ocr_enabled: bool = True
     ocr_lang: str = "ben+eng"
@@ -75,6 +81,11 @@ class Settings(BaseSettings):
         return value.expanduser().resolve()
 
     # --- Derived paths ---
+    @property
+    def bind_host(self) -> str:
+        """Listening address. Loopback unless the phone link is switched on."""
+        return "0.0.0.0" if self.phone_link_enabled else self.host  # noqa: S104
+
     @property
     def db_path(self) -> Path:
         return self.data_dir / "shop.db"

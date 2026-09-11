@@ -17,6 +17,12 @@ dependencies = [
     "pytesseract>=0.3.13",
     # zoneinfo has no system tz database on Windows; this ships one.
     "tzdata>=2024.2",
+    # Barcode reading from a phone photo. Pure wheel - no system library, so it
+    # packages into the Windows .exe without extra DLLs.
+    "zxing-cpp>=2.2",
+    "numpy>=1.26",
+    # QR code for phone pairing, rendered as inline SVG.
+    "qrcode>=7.4",
 ]
 
 [project.optional-dependencies]

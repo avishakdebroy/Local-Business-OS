@@ -37,7 +37,12 @@
     <label for="entry_date">Date the money or stock moved / তারিখ
       <span class="hint">Not today's date — the date on the receipt.</span>
     </label>
-    <input id="entry_date" type="date" name="entry_date" value="{{ fields.entry_date or today }}" required>
+    <input id="entry_date" type="date" name="entry_date" value="{{ fields.entry_date or today }}" required
+           onchange="document.getElementById('date-echo').textContent = this.value">
+    <p class="small muted" style="margin:.35rem 0 0">
+      This entry is dated <strong id="date-echo">{{ fields.entry_date or today }}</strong>
+      (year-month-day). Today is {{ today }}.
+    </p>
 
     <fieldset id="group-money" class="group">
       <legend>Sale or purchase</legend>

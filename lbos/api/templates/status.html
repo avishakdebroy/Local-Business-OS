@@ -67,7 +67,61 @@
   {% endif %}
 </div>
 
-<div class="actions">
-  <form method="post" action="/status/backup"><button type="submit">Make a backup now</button></form>
+<h2>Backup / ব্যাকআপ</h2>
+<div class="card">
+  <p class="small muted" style="margin-top:0">
+    {% if latest_backup %}Most recent backup: <strong>{{ latest_backup.name }}</strong>.
+    {% else %}No backup has been made yet.{% endif %}
+  </p>
+  <div class="actions">
+    <form method="post" action="/status/backup"><button type="submit">Make a backup now</button></form>
+  </div>
+
+  <h3 style="margin-bottom:.4rem">Copy to a pen drive</h3>
+  {% if drives %}
+    {% for d in drives %}
+    <form method="post" action="/status/copy-to-drive" class="row-inline" style="margin-bottom:.5rem">
+      <input type="hidden" name="drive" value="{{ d.path }}">
+      <div class="small">{{ d.label }} <span class="muted">— {{ human_bytes(d.free_bytes) }} free</span></div>
+      <button type="submit" class="secondary">Copy here</button>
+    </form>
+    {% endfor %}
+  {% else %}
+    <p class="small muted">
+      No pen drive is plugged in. Plug one into the computer and reload this page.
+      A backup kept only on this computer will not survive the computer being lost or stolen.
+    </p>
+  {% endif %}
+</div>
+
+<h2>If something is wrong / সমস্যা হলে</h2>
+<div class="grid two">
+  <div class="card">
+    <h3 style="margin-top:0">Repair</h3>
+    <p class="small muted">Checks the database, applies any pending updates and tidies up.
+       It never deletes anything.</p>
+    <div class="actions">
+      <form method="post" action="/status/repair"><button type="submit" class="secondary">Repair</button></form>
+    </div>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">Get help</h3>
+    <p class="small muted">
+      Makes a small file ({{ '%.0f'|format(1.5) }} KB or so) describing this computer and what went wrong.
+      Send it on WhatsApp to whoever helps you. It has <strong>no</strong> customer names,
+      amounts, phone numbers or passwords in it.
+    </p>
+    <div class="actions"><a class="btn secondary" href="/status/support-file">Download the help file</a></div>
+  </div>
+</div>
+
+<h2>Technical details</h2>
+<div class="card">
+  <table>
+    <tr><th>Program version</th><td>{{ report.app_version }}</td></tr>
+    <tr><th>Database format</th><td>{{ report.database.schema_version if report.database is mapping else report.database }}{% if report.database is mapping %} of {{ report.database.expected_schema_version }}{% endif %}</td></tr>
+    <tr><th>Database check</th><td>{% if report.database is mapping %}{{ report.database.integrity }}{% else %}—{% endif %}</td></tr>
+    <tr><th>Running as</th><td>{{ 'packaged program' if report.frozen_exe else 'Python' }} {{ report.python }}</td></tr>
+  </table>
 </div>
 {% endblock %}

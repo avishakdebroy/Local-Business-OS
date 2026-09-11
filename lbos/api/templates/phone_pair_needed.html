@@ -1,0 +1,17 @@
+{% extends "phone_base.html" %}
+{% block title %}Link this phone{% endblock %}
+{% block content %}
+<h1>Link this phone</h1>
+{% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+<div class="card">
+  <p>On the shop computer, open <strong>Phone</strong> at the top of the screen,
+     then point this phone's camera at the square shown there.</p>
+  <p class="small muted">If you would rather type the code, enter it below.</p>
+  <form method="get" action="/phone/pair">
+    <label for="code">Pairing code / কোড</label>
+    <input id="code" type="text" name="code" inputmode="numeric" pattern="[0-9]*"
+           autocomplete="off" placeholder="6 digits" required>
+    <button type="submit">Link this phone</button>
+  </form>
+</div>
+{% endblock %}

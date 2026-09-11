@@ -492,3 +492,152 @@ def update_report_delivery(
         "UPDATE report_runs SET delivery_status = ?, delivery_detail = ? WHERE id = ?",
         (status, detail, report_id),
     )
+
+
+# --- Customers and credit (বাকি খাতা) ---------------------------------------
+#
+# A positive balance means the customer owes the shop. Balances are derived from
+# entries by the customer_balance view and are never stored, for the same reason
+# stock levels are not: a stored total can drift away from its own history.
+
+
+def upsert_customer(
+    conn: sqlite3.Connection,
+    *,
+    name: str,
+    phone: str | None = None,
+    note: str | None = None,
+) -> int:
+    key = name_key(name)
+    if not key:
+        raise ValueError("a customer needs a name")
+    now = now_utc_iso()
+    existing = _row(conn.execute("SELECT id FROM customers WHERE name_key = ?", (key,)))
+    if existing:
+        sets, params = ["updated_at = ?"], [now]
+        if phone:
+            sets.append("phone = ?")
+            params.append(phone)
+        if note:
+            sets.append("note = ?")
+            params.append(note)
+        params.append(existing["id"])
+        conn.execute(f"UPDATE customers SET {', '.join(sets)} WHERE id = ?", params)
+        return int(existing["id"])
+
+    cursor = conn.execute(
+        "INSERT INTO customers (name, name_key, phone, note, created_at, updated_at)"
+        " VALUES (?, ?, ?, ?, ?, ?)",
+        (name.strip()[:120], key, phone, note, now, now),
+    )
+    return int(cursor.lastrowid)
+
+
+def customer(conn: sqlite3.Connection, customer_id: int) -> dict[str, Any] | None:
+    return _row(
+        conn.execute("SELECT * FROM customer_balance WHERE customer_id = ?", (customer_id,))
+    )
+
+
+def customers_with_balance(
+    conn: sqlite3.Connection, only_owing: bool = False, search: str | None = None
+) -> list[dict[str, Any]]:
+    sql = ["SELECT * FROM customer_balance WHERE 1 = 1"]
+    params: list[Any] = []
+    if only_owing:
+        sql.append("AND balance_paisa > 0")
+    if search:
+        sql.append("AND (name LIKE ? OR IFNULL(phone, '') LIKE ?)")
+        params += [f"%{search}%", f"%{search}%"]
+    sql.append("ORDER BY balance_paisa DESC, name ASC")
+    return _rows(conn.execute(" ".join(sql), params))
+
+
+def insert_credit_entry(
+    conn: sqlite3.Connection,
+    *,
+    customer_id: int,
+    entry_date: str,
+    kind: str,
+    amount_paisa: int,
+    note: str | None = None,
+    document_id: int | None = None,
+) -> int:
+    cursor = conn.execute(
+        """
+        INSERT INTO credit_entries
+            (customer_id, document_id, entry_date, kind, amount_paisa, note, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (customer_id, document_id, entry_date, kind, int(amount_paisa), note, now_utc_iso()),
+    )
+    return int(cursor.lastrowid)
+
+
+def credit_entries(
+    conn: sqlite3.Connection, customer_id: int, limit: int = 200
+) -> list[dict[str, Any]]:
+    return _rows(
+        conn.execute(
+            """
+            SELECT * FROM credit_entries
+            WHERE customer_id = ? AND voided_at IS NULL
+            ORDER BY entry_date DESC, id DESC LIMIT ?
+            """,
+            (customer_id, limit),
+        )
+    )
+
+
+def credit_entries_between(
+    conn: sqlite3.Connection, start: str, end: str, limit: int = 500
+) -> list[dict[str, Any]]:
+    return _rows(
+        conn.execute(
+            """
+            SELECT e.*, c.name AS customer_name
+            FROM credit_entries e JOIN customers c ON c.id = e.customer_id
+            WHERE e.voided_at IS NULL AND e.entry_date BETWEEN ? AND ?
+            ORDER BY e.entry_date DESC, e.id DESC LIMIT ?
+            """,
+            (start, end, limit),
+        )
+    )
+
+
+def void_credit_entry(conn: sqlite3.Connection, entry_id: int, reason: str) -> int:
+    cursor = conn.execute(
+        "UPDATE credit_entries SET voided_at = ?, void_reason = ?"
+        " WHERE id = ? AND voided_at IS NULL",
+        (now_utc_iso(), reason, entry_id),
+    )
+    return cursor.rowcount
+
+
+def credit_totals(conn: sqlite3.Connection) -> dict[str, int]:
+    row = _row(
+        conn.execute(
+            """
+            SELECT COALESCE(SUM(balance_paisa), 0) AS owed,
+                   COUNT(*)                        AS customers
+            FROM customer_balance WHERE balance_paisa > 0
+            """
+        )
+    ) or {"owed": 0, "customers": 0}
+    return {"outstanding_paisa": int(row["owed"]), "customers_owing": int(row["customers"])}
+
+
+def credit_movement(conn: sqlite3.Connection, start: str, end: str) -> dict[str, int]:
+    """New credit given and repayments received in a date range."""
+    result = {"charge_paisa": 0, "payment_paisa": 0}
+    for row in conn.execute(
+        """
+        SELECT kind, COALESCE(SUM(amount_paisa), 0) AS total
+        FROM credit_entries
+        WHERE voided_at IS NULL AND entry_date BETWEEN ? AND ?
+        GROUP BY kind
+        """,
+        (start, end),
+    ):
+        result[f"{row['kind']}_paisa"] = int(row["total"])
+    return result

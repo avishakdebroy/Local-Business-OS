@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Day book — Local Business OS{% endblock %}
+{% block content %}
+
+<div class="daynav">
+  <a class="btn secondary" href="/?day={{ book.previous_day }}">← {{ book.previous_day }}</a>
+  <h1 style="margin:0">{{ book.day }}{% if is_today %} <span class="tag">today / আজ</span>{% endif %}</h1>
+  {% if not is_today %}<a class="btn secondary" href="/?day={{ book.next_day }}">{{ book.next_day }} →</a>{% endif %}
+  {% if not is_today %}<a class="today-link" href="/">Back to today</a>{% endif %}
+</div>
+
+<div class="tiles">
+  <div class="tile good"><div class="label">Cash in / নগদ আয়</div><div class="value">{{ book.cash_in_paisa|taka }}</div></div>
+  <div class="tile bad"><div class="label">Cash out / নগদ ব্যয়</div><div class="value">{{ book.cash_out_paisa|taka }}</div></div>
+  <div class="tile"><div class="label">Net cash / নিট নগদ</div><div class="value">{{ book.net_cash_paisa|taka }}</div></div>
+  <div class="tile"><div class="label">Owed to you / মোট বাকি</div>
+    <div class="value">{{ book.outstanding_paisa|taka }}</div>
+    <div class="small muted">{% if book.customers_owing %}<a href="/khata">{{ book.customers_owing }} customer(s)</a>{% else %}nobody owes you{% endif %}</div>
+  </div>
+</div>
+
+{% if book.credit_given_paisa or book.credit_received_paisa %}
+<p class="small muted" style="margin:.6rem 0 0">
+  Credit given today {{ book.credit_given_paisa|taka }} · payments received {{ book.credit_received_paisa|taka }}.
+  Goods given on বাকি are <strong>not</strong> counted as cash in.
+</p>
+{% endif %}
+
+<h2>The day / আজকের পাতা</h2>
+<div class="book">
+  {% for line in book.lines %}
+  <div class="row {{ line.kind }}">
+    <div class="what">
+      <b>{{ line.label }}</b>
+      {% if line.detail %}<span class="small muted"> — {{ line.detail }}</span>{% endif %}
+    </div>
+    {% if line.amount_paisa %}<div class="amt">{{ line.amount_paisa|taka }}</div>{% endif %}
+    {% if line.ref %}<a class="small" href="{{ line.ref }}">open</a>{% endif %}
+  </div>
+  {% else %}
+  <div class="empty">Nothing written on this page yet.</div>
+  {% endfor %}
+</div>
+
+<h2>Add an entry / নতুন এন্ট্রি</h2>
+<div class="grid two">
+  <form class="card" method="post" action="/capture/text">
+    <label for="text">Type what happened
+      <span class="hint">Bengali or English. Example: “বিক্রি ৳১২৫০ নগদ”.</span>
+    </label>
+    <textarea id="text" name="text" required placeholder="মোট ৳১২৫০ নগদ বিক্রি&#10;Total 1250 taka cash sale"></textarea>
+    <label for="hint_text">What kind of entry?</label>
+    <select id="hint_text" name="hint">
+      <option value="auto" selected>Let the app decide / নিজে বুঝে নিক</option>
+      <option value="sale">Sale / বিক্রয়</option>
+      <option value="purchase">Purchase / ক্রয়</option>
+      <option value="stock">Stock / মজুদ</option>
+      <option value="memo">Note / নোট</option>
+    </select>
+    <div class="actions"><button type="submit">Save / সংরক্ষণ</button></div>
+  </form>
+
+  <form class="card" method="post" action="/capture/file" enctype="multipart/form-data">
+    <label for="file">Upload a bill or a photo of your notebook
+      <span class="hint">The photo is always kept, even if the writing cannot be read.</span>
+    </label>
+    <input id="file" type="file" name="file" required
+           accept=".jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff,.pdf,.txt,.csv,.md">
+    <label for="hint_file">What kind of entry?</label>
+    <select id="hint_file" name="hint">
+      <option value="auto" selected>Let the app decide / নিজে বুঝে নিক</option>
+      <option value="sale">Sale / বিক্রয়</option>
+      <option value="purchase">Purchase / ক্রয়</option>
+      <option value="stock">Stock / মজুদ</option>
+      <option value="memo">Note / নোট</option>
+    </select>
+    <div class="actions">
+      <button type="submit">Upload / আপলোড</button>
+      <a class="btn secondary" href="/link">Use my phone →</a>
+    </div>
+  </form>
+</div>
+
+{% if low_stock %}
+<h2>Running low / মজুদ কম</h2>
+<div class="card scroll-x">
+  <table>
+    <thead><tr><th>Item</th><th class="num">On hand</th><th class="num">Reorder at</th></tr></thead>
+    <tbody>
+      {% for row in low_stock %}
+      <tr><td>{{ row.name }} <span class="pill low">low</span></td>
+          <td class="num">{{ row.on_hand_milli|qty(row.unit) }}</td>
+          <td class="num">{{ row.reorder_level_milli|qty(row.unit) }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

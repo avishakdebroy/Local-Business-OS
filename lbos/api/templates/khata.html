@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Khata — Local Business OS{% endblock %}
+{% block content %}
+<h1>Khata / বাকির খাতা</h1>
+
+<div class="tiles">
+  <div class="tile bad"><div class="label">Total owed to you / মোট বাকি</div>
+    <div class="value">{{ totals.outstanding_paisa|taka }}</div>
+    <div class="small muted">{{ totals.customers_owing }} customer(s)</div></div>
+</div>
+
+<div class="grid two">
+  <form class="card" method="get" action="/khata">
+    <label for="q">Find a customer / খদ্দের খুঁজুন</label>
+    <input id="q" type="text" name="q" value="{{ q }}" placeholder="Name or phone">
+    <label for="show">Show</label>
+    <select id="show" name="show">
+      <option value="owing" {% if show != 'all' %}selected{% endif %}>Only those who owe</option>
+      <option value="all" {% if show == 'all' %}selected{% endif %}>Everyone</option>
+    </select>
+    <div class="actions"><button type="submit">Search</button></div>
+  </form>
+
+  <form class="card" method="post" action="/khata/new">
+    <label for="name">Add a customer / নতুন খদ্দের</label>
+    <input id="name" type="text" name="name" required placeholder="Rahim Mia">
+    <label for="phone">Phone <span class="hint">optional</span></label>
+    <input id="phone" type="text" name="phone" inputmode="tel" placeholder="017…">
+    <div class="actions"><button type="submit">Add / যোগ করুন</button></div>
+  </form>
+</div>
+
+<div class="card scroll-x">
+  {% if customers %}
+  <table>
+    <thead><tr><th>Customer</th><th>Phone</th><th>Last activity</th><th class="num">Owes / বাকি</th><th></th></tr></thead>
+    <tbody>
+      {% for c in customers %}
+      <tr>
+        <td><a href="/khata/{{ c.customer_id }}"><strong>{{ c.name }}</strong></a></td>
+        <td class="small muted">{{ c.phone or '—' }}</td>
+        <td class="small muted">{{ c.last_activity or 'never' }}</td>
+        <td class="num {{ 'balance-pos' if c.balance_paisa > 0 else 'balance-zero' }}">{{ c.balance_paisa|taka }}</td>
+        <td><a class="btn secondary" href="/khata/{{ c.customer_id }}">Open</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">
+    {% if q %}Nobody matches “{{ q }}”.{% else %}Nobody owes you anything right now.{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
